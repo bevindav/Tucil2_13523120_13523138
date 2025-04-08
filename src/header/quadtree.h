@@ -16,6 +16,7 @@ private:
     int x, y;            
     int lebar, panjang;   
     Color avgColor;      
+    double error;
     bool isLeaf;         
     QuadTreeNode* topLeft;
     QuadTreeNode* topRight;
@@ -47,13 +48,24 @@ public:
     void split();
     
     bool hasChildren() const;
+
+    void setError(double err);
+    double getError() const;
 };
 
 class QuadTree {
 private:
     QuadTreeNode* root;
     int totalN;     
-    int maxDepth; 
+    int maxDepth;
+    int realWidth;
+    int realHeight;
+    void reconstructLimitedHelper(
+        QuadTreeNode* node,
+        std::vector<std::vector<Color>>& image,
+        int x, int y, int width, int height,
+        int currentDepth, int maxDepth
+    );
     
 public:
     // ctor
@@ -61,7 +73,7 @@ public:
     
     // dtor
     ~QuadTree();
-
+    std::vector<std::vector<Color>> reconstructImageLimitedDepth(int maxDepth);
     std::vector<std::vector<Color>> reconstructImage(int lebar, int panjang);
     
     QuadTreeNode* getRoot() const { return root; }
@@ -73,8 +85,9 @@ public:
     void buildNode(QuadTreeNode* node, const std::vector<std::vector<Color>>& image, int errorMethod, double threshold, int minBlockSize, int depth);
         
     void fillImage(std::vector<std::vector<Color>>& image, QuadTreeNode* node);
-    
     int hitungCompressedSize();
+    std::vector<std::vector<Color>> reconstructImageForGIF(int depth);
+    void fillImageLimited(std::vector<std::vector<Color>>& image, QuadTreeNode* node, int maxDepth, int currentDepth);
 };
 
 #endif

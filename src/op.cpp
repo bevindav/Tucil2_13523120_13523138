@@ -2,6 +2,9 @@
 #include "header/stb_image.h" 
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "header/stb_image_write.h" 
+#define GIF_STATIC
+#define GIF_IMPL
+#include "header/gif.h"
 #include "header/op.h"
 #include <cmath>
 #include <algorithm>
@@ -160,10 +163,10 @@ bool readImage(const std::string& filename, std::vector<std::vector<Color>>& ima
 
 bool writeImage(const std::string& filename, const std::vector<std::vector<Color>>& image) {
     if (image.empty() || image[0].empty()) {
-        std::cerr << "Empty image!" << std::endl;
+        std::cerr << "Gambarnya kosong :(" << std::endl;
         return false;
     }
-    
+    std::cout << "Memroses gambar..." << std::endl;
     int height = image.size();
     int width = image[0].size();
     std::string extension = getFileExtension(filename);
@@ -185,7 +188,7 @@ bool writeImage(const std::string& filename, const std::vector<std::vector<Color
         success = stbi_write_png(filename.c_str(), width, height, 3, data, width * 3);
     } 
     else if (extension == "jpg" || extension == "jpeg") {
-        success = stbi_write_jpg(filename.c_str(), width, height, 3, data, 90); // 90 is quality (0-100)
+        success = stbi_write_jpg(filename.c_str(), width, height, 3, data, 90); // 90 kualitas (0-100)
     }
     else if (extension == "bmp") {
         success = stbi_write_bmp(filename.c_str(), width, height, 3, data);
@@ -206,12 +209,53 @@ bool writeImage(const std::string& filename, const std::vector<std::vector<Color
         std::cerr << "Gagal write gambar: " << filename << std::endl;
         return false;
     }
-    
     return true;
 }
 
 //[CHECK] gimmick
-double calculateCompressionPercentage(int originalSize, int compressedSize) {
+double hitungCompressionPercentage(int originalSize, int compressedSize) {
     if (originalSize <= 0) return 0.0;
     return (1.0 - static_cast<double>(compressedSize) / originalSize) * 100.0;
+}
+
+void createQuadtreeGIF(
+    const std::string& outputGifPath,
+    const std::vector<std::vector<Color>>& originalImage,
+    QuadTree& quadtree,
+    int errorMethod,
+    double threshold,
+    int minBlockSize
+) {
+    int maxDepth = quadtree.getMaxDepth();
+    int width = originalImage[0].size();
+    int height = originalImage.size();
+        
+    GifWriter gifWriter = {};
+    GifBegin(&gifWriter, outputGifPath.c_str(), width, height, 100); // 100ms per frame
+    
+    for (int depth = 0; depth <= maxDepth; depth++) {
+        std::vector<std::vector<Color>> frameImage = quadtree.reconstructImageForGIF(depth);
+        
+        std::vector<uint8_t> rgbaPixels(width * height * 4);
+        
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int idx = (y * width + x) * 4;
+                
+                if (y < frameImage.size() && x < frameImage[y].size()) {
+                    Color c = frameImage[y][x];
+                    rgbaPixels[idx] = c.r;     
+                    rgbaPixels[idx + 1] = c.g; 
+                    rgbaPixels[idx + 2] = c.b; 
+                    rgbaPixels[idx + 3] = 255; 
+                } else {
+                    rgbaPixels[idx] = 0;
+                    rgbaPixels[idx + 1] = 0;
+                    rgbaPixels[idx + 2] = 0;
+                    rgbaPixels[idx + 3] = 255;
+                }
+            }
+        }
+        GifWriteFrame(&gifWriter, rgbaPixels.data(), width, height, 100);
+    }
 }

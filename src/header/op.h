@@ -18,6 +18,8 @@ double hitungMaxDifference(const std::vector<Color>& pixels);
 // Entropy
 double hitungEntropy(const std::vector<Color>& pixels);
 
+double hitungSSIM(const std::vector<Color>& originalPixels, const std::vector<Color>& compressedPixels);
+
 // konversi format
 std::string getFileExtension(const std::string& filename);
 bool convertToPPM(const std::string& inputFile, const std::string& outputPPM);
@@ -29,5 +31,22 @@ bool readImage(const std::string& filename, std::vector<std::vector<Color>>& ima
 bool writeImage(const std::string& filename, const std::vector<std::vector<Color>>& image);
 
 double calculateCompressionPercentage(int originalSize, int compressedSize);
+
+double estimateThresholdForTargetCompression(
+    const std::vector<std::vector<Color>>& image, 
+    int errorMethod, 
+    int minBlockSize, 
+    double targetCompression,
+    int originalSize
+);
+
+void createQuadtreeGIF(
+    const std::string& outputGifPath,
+    const std::vector<std::vector<Color>>& originalImage,
+    QuadTree& quadtree,
+    int errorMethod,
+    double threshold,
+    int minBlockSize
+);
 
 #endif

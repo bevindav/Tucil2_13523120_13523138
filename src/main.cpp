@@ -38,6 +38,34 @@ bool validateOutputPath(const std::string& path) {
     return true;
 }
 
+void clearScreen() {
+    #ifdef _WIN32
+        system("cls");
+    #else
+        system("clear");
+    #endif
+    }
+
+void displayProgressBar(int progress, int total) {
+    const int barWidth = 50;
+    float ratio = static_cast<float>(progress) / total;
+    int pos = barWidth * ratio;
+    
+    std::cout << "\r[";
+    for (int i = 0; i < barWidth; ++i) {
+        if (i < pos) std::cout << "=";
+        else if (i == pos) std::cout << ">";
+        else std::cout << " ";
+    }
+    std::cout << "] " << int(ratio * 100.0) << "% ";
+    
+    if (progress == total) {
+        std::cout << std::endl;
+    }
+    std::cout.flush();
+}
+
+
 int main() {
     std::string inputFile;
     int errorMethod;
@@ -62,7 +90,7 @@ int main() {
     std::cout << "Pilihan kamu: ";
     std::cin >> errorMethod;
     if (errorMethod < 1 || errorMethod > 4) {
-        std::cerr << "Error: Invalid error method. Must be between 1 and 4." << std::endl;
+        std::cerr << "Pilihanmu seharusnya 1-4 :(" << std::endl;
         return 1;
     }
     
@@ -118,6 +146,11 @@ int main() {
         return 1;
     }
 
+    if (!gifFile.empty()) {
+        std::cout << "Memroses GIF..." << std::endl;
+        createQuadtreeGIF(gifFile, image, quadtree, errorMethod, threshold, minBlockSize);
+    }
+
     auto endTime = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
     
@@ -152,6 +185,11 @@ int main() {
     std::cout << "| Gambar berhasil tersimpan di: " << outputFile;
     std::cout << std::string(std::max(0, 24 - (int)outputFile.length()), ' ') << "|" << std::endl;
     std::cout << "+--------------------------------------------------+" << std::endl;
-    
+    if (!gifFile.empty()) {
+        std::cout << "+--------------------------------------------------+" << std::endl;
+        std::cout << "| GIF berhasil tersimpan di: " << gifFile;
+        std::cout << std::string(std::max(0, 24 - (int)outputFile.length()), ' ') << "|" << std::endl;
+        std::cout << "+--------------------------------------------------+" << std::endl;
+    }
     return 0;
 }
