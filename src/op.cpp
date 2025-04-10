@@ -1,5 +1,6 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "header/stb_image.h" 
+#include "header/quadtree.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "header/stb_image_write.h" 
 #define GIF_STATIC
@@ -126,6 +127,37 @@ double hitungEntropy(const std::vector<Color>& pixels) {
     return (entropyR + entropyG + entropyB) / 3.0;
 }
 
+double hitungSSIM(const std::vector<Color>& pixels, const Color& avgColor) {
+    if (pixels.empty()) return 0.0;
+
+    double L = 255;
+    double C1 = (0.03 * L) * (0.03 * L);
+
+    double sumSqrDiffR = 0.0, sumSqrDiffG = 0.0, sumSqrDiffB = 0.0;
+
+    for (const auto& pixel : pixels) {
+        double diffR = pixel.r - avgColor.r;
+        double diffG = pixel.g - avgColor.g;
+        double diffB = pixel.b - avgColor.b;
+        
+        sumSqrDiffR += diffR * diffR;
+        sumSqrDiffG += diffG * diffG;
+        sumSqrDiffB += diffB * diffB;
+    }
+    
+    int count = pixels.size();
+    double varianceR = sumSqrDiffR / count;
+    double varianceG = sumSqrDiffG / count;
+    double varianceB = sumSqrDiffB / count;
+
+    // SSIM per channel
+    double ssimR = C1 / (varianceR + C1);
+    double ssimG = C1 / (varianceG + C1);
+    double ssimB = C1 / (varianceB + C1);
+
+    return (ssimR + ssimG + ssimB) / 3.0;
+}
+
 std::string getFileExtension(const std::string& filename) {
     size_t dotPos = filename.find_last_of('.');
     if (dotPos == std::string::npos || dotPos == filename.length() - 1) {
@@ -212,12 +244,6 @@ bool writeImage(const std::string& filename, const std::vector<std::vector<Color
     return true;
 }
 
-//[CHECK] gimmick
-double hitungCompressionPercentage(int originalSize, int compressedSize) {
-    if (originalSize <= 0) return 0.0;
-    return (1.0 - static_cast<double>(compressedSize) / originalSize) * 100.0;
-}
-
 void createQuadtreeGIF(
     const std::string& outputGifPath,
     const std::vector<std::vector<Color>>& originalImage,
@@ -258,4 +284,47 @@ void createQuadtreeGIF(
         }
         GifWriteFrame(&gifWriter, rgbaPixels.data(), width, height, 100);
     }
+}
+
+double estimateThresholdForTargetCompression(
+    const std::vector<std::vector<Color>>& image, 
+    int errorMethod, 
+    int minBlockSize, 
+    double targetCompression,
+    int originalSize
+) {
+    // std::cout << "Mencari threshold..." << std::endl;
+    double low = 0.0;
+    double high = (errorMethod == 1) ? 128 * 128 : 1.0; // max threshold tergantung metode
+    if (errorMethod == 2 || errorMethod == 3) high = 255;
+    if (errorMethod == 4) high = 8.0;
+
+    double tolerance = 0.01; // 1% toleransi
+    double bestThreshold = low;
+
+    for (int i = 0; i < 20; i++) {
+        std::cout << "Mencari threshold..." << std::endl;
+        double mid = (low + high) / 2.0;
+
+        QuadTree qt;
+        qt.buildfrImage(image, errorMethod, mid, minBlockSize);
+        std::vector<std::vector<Color>> reconstructed = qt.reconstructImage(image[0].size(), image.size());
+
+        int compressedSize = qt.hitungCompressedSize();
+        double compressionRatio = 1.0 - static_cast<double>(compressedSize) / originalSize;
+
+        if (std::abs(compressionRatio - targetCompression) <= tolerance) {
+            bestThreshold = mid;
+            break;
+        }
+
+        if (compressionRatio < targetCompression) {
+            high = mid;
+        } else {
+            low = mid;
+        }
+
+        bestThreshold = mid;
+    }
+    return bestThreshold;
 }
