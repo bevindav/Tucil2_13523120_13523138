@@ -36,7 +36,7 @@ QuadTree::~QuadTree() {
     if (root) delete root;
 }
 
-void QuadTree::buildfrImage(const std::vector<std::vector<Color>>& image, int errorMethod, double errorThreshold, int maxDepth) {
+void QuadTree::buildfrImage(const std::vector<std::vector<Color>>& image, int errorMethod, double errorThreshold, int minBlockSize) {
     if (image.empty() || image[0].empty()) return;
     int panjang = image[0].size();
     int lebar = image.size();
@@ -46,71 +46,62 @@ void QuadTree::buildfrImage(const std::vector<std::vector<Color>>& image, int er
 
     root = new QuadTreeNode(0, 0, panjang, lebar);
     totalN = 1;
-    this->maxDepth = 0;
+    // this->maxDepth = 0;
     
-    buildNode(root, image, errorMethod, errorThreshold, maxDepth, 0);
+    buildNode(root, image, errorMethod, errorThreshold, minBlockSize, 0);
 }
 
-void QuadTree::buildNode(QuadTreeNode* node, const std::vector<std::vector<Color>>& image, 
-    int errorMethod, double errorThreshold, int maxDepth, int currentDepth) {
+void QuadTree::buildNode(QuadTreeNode* node, const std::vector<std::vector<Color>>& image, int errorMethod, double errorThreshold, int minBlockSize, int currentDepth) {
     if (!node) return;
-
+        
     this->maxDepth = std::max(this->maxDepth, currentDepth);
-
+        
     int nodeX = node->getX();
     int nodeY = node->getY();
     int nodePanjang = node->getpanjang();
     int nodeLebar = node->getlebar();
-
+        
     std::vector<Color> blockPixels;
-    for (int y = nodeY; y < nodeY + nodeLebar && y < image.size(); y++) {
-    for (int x = nodeX; x < nodeX + nodePanjang && x < image[0].size(); x++) {
-    if (y < image.size() && x < image[y].size()) {
-    blockPixels.push_back(image[y][x]);
-    } else {
-    blockPixels.push_back(Color(0, 0, 0));
+    for (int y = nodeY; y < nodeY + nodeLebar; ++y) {
+        for (int x = nodeX; x < nodeX + nodePanjang; ++x) {
+            if (y < image.size() && x < image[0].size())
+                blockPixels.push_back(image[y][x]);
+        }
     }
-    }
-    }
-
+        
     Color avgColor = hitungAverageColor(blockPixels);
     node->setAvgColor(avgColor);
 
-    double error = 0;
+    double error = 0.0;
     switch (errorMethod) {
-    case 1: // Variance
-    error = hitungVariance(blockPixels, avgColor);
-    break;
-    case 2: // Mean Absolute Deviance
-    error = hitungMAD(blockPixels, avgColor);
-    break;
-    case 3: // Max Pixel Difference
-    error = hitungMaxDifference(blockPixels);
-    break;
-    case 4: // Entropy
-    error = hitungEntropy(blockPixels);
-    break;
-    default:
-    error = hitungVariance(blockPixels, avgColor);
+        case 1: error = hitungVariance(blockPixels, avgColor); break;
+        case 2: error = hitungMAD(blockPixels, avgColor); break;
+        case 3: error = hitungMaxDifference(blockPixels); break;
+        case 4: error = hitungEntropy(blockPixels); break;
+        case 5: error = hitungSSIM(blockPixels, avgColor); break;
+        default: error = hitungVariance(blockPixels, avgColor); break;
     }
     node->setError(error);
-
-    if (currentDepth >= maxDepth || error <= errorThreshold) {
-    node->setLeaf(true);
-    return;
+    
+    // Ini pengecekan minBlockSize-nya
+    if (nodePanjang <= minBlockSize || nodeLebar <= minBlockSize) {
+        node->setLeaf(true);
+        return;
     }
-
-    if (nodePanjang > 1 && nodeLebar > 1) {
+    
+    if ((errorMethod == 5 && error >= errorThreshold) ||
+        (errorMethod != 5 && error <= errorThreshold)) {
+        node->setLeaf(true);
+        return;
+    }
+    
     node->split();
     totalN += 4;
-
-    buildNode(node->getTopLeft(), image, errorMethod, errorThreshold, maxDepth, currentDepth + 1);
-    buildNode(node->getTopRight(), image, errorMethod, errorThreshold, maxDepth, currentDepth + 1);
-    buildNode(node->getBottomLeft(), image, errorMethod, errorThreshold, maxDepth, currentDepth + 1);
-    buildNode(node->getBottomRight(), image, errorMethod, errorThreshold, maxDepth, currentDepth + 1);
-    } else {
-    node->setLeaf(true);
-    }
+    
+    buildNode(node->getTopLeft(), image, errorMethod, errorThreshold, minBlockSize, currentDepth + 1);
+    buildNode(node->getTopRight(), image, errorMethod, errorThreshold, minBlockSize, currentDepth + 1);
+    buildNode(node->getBottomLeft(), image, errorMethod, errorThreshold, minBlockSize, currentDepth + 1);
+    buildNode(node->getBottomRight(), image, errorMethod, errorThreshold, minBlockSize, currentDepth + 1);
 }
 
 std::vector<std::vector<Color>> QuadTree::reconstructImage(int panjang, int lebar) {
