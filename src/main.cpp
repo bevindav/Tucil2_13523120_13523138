@@ -71,9 +71,9 @@ int main() {
     int errorMethod;
     double threshold;
     int minBlockSize;
-    double targetCompression; // [CHECK] gimmick aja bang
+    double targetCompression;
     std::string outputFile;
-    std::string gifFile; // [CHECK] gimmick aja bang
+    std::string gifFile;
     
     // 1. [INPUT] alamat absolut gambar yang akan dikompresi
     std::cout << "Masukkan alamat absolut gambar yang akan dikompresi: ";
@@ -87,18 +87,38 @@ int main() {
     std::cout << "2 - Mean Absolute Deviation" << std::endl;
     std::cout << "3 - Max Pixel Difference" << std::endl;
     std::cout << "4 - Entropy" << std::endl;
+    std::cout << "5 - Structural Similarity Index (SSIM)" << std::endl;
     std::cout << "Pilihan kamu: ";
     std::cin >> errorMethod;
-    if (errorMethod < 1 || errorMethod > 4) {
-        std::cerr << "Pilihanmu seharusnya 1-4 :(" << std::endl;
+    if (errorMethod < 1 || errorMethod > 5) {
+        std::cerr << "Pilihanmu seharusnya 1-5 :(" << std::endl;
         return 1;
     }
     
-    // [CHECK] ini batasnya ga negatif aja apa gimana ya..
     std::cout << "Masukkan ambang batas (threshold): ";
     std::cin >> threshold;
     if (threshold < 0) {
         std::cerr << "Threshold tidak bisa negatif :(" << std::endl;
+        return 1;
+    }
+    if (errorMethod == 1 && threshold > (128*128)) {
+        std::cerr << "Threshold metode Variance harus dari 0-128*128 :(" << std::endl;
+        return 1;
+    }
+    if (errorMethod == 2 && threshold > 255) {
+        std::cerr << "Threshold metode Mean Absolute Deviation harus dari 0-255 :(" << std::endl;
+        return 1;
+    }
+    if (errorMethod == 3 && threshold > 255) {
+        std::cerr << "Threshold metode Max Pixel Difference harus dari 0-255 :(" << std::endl;
+        return 1;
+    }
+    if (errorMethod == 4 && threshold > 8) {
+        std::cerr << "Threshold metode Entropy gabisa di atas 8 :(" << std::endl;
+        return 1;
+    }
+    if (errorMethod == 5 && threshold > 1) {
+        std::cerr << "Threshold metode SSIM harus 0-1 yah :(" << std::endl;
         return 1;
     }
     std::cout << "Masukkan ukuran blok minimum: ";
@@ -111,9 +131,17 @@ int main() {
     // [CHECK] belum implement gimmick aja duls
     std::cout << "Masukkan target kompresi (0.0-1.0, 0 untuk menonaktifkan mode ini): ";
     std::cin >> targetCompression;
+    bool isTarget=false;
     if (targetCompression < 0 || targetCompression > 1.0) {
         std::cerr << "Target persentase seharusnya di antara 0.0 - 1.0" << std::endl;
         return 1;
+    } else {
+        if (targetCompression == 0){
+            isTarget = false;
+        } else {
+            isTarget = true;
+            minBlockSize = 1;
+        }
     }
     
     std::cout << "Masukkan alamat absolut gambar hasil kompresi: ";
@@ -122,8 +150,7 @@ int main() {
         return 1;
     }
     
-    // [CHECK] belum implement gimmick aja duls
-    std::cout << "Masukkan alamat absolut GIF (enter aja dlu untuk skip): ";
+    std::cout << "Masukkan alamat absolut GIF (kalau gak mau enter ajah): ";
     std::cin.ignore();
     std::getline(std::cin, gifFile);
     
@@ -136,6 +163,11 @@ int main() {
     }
     
     size_t originalSize = getFileSize(inputFile);
+
+    if (isTarget) {
+        threshold = estimateThresholdForTargetCompression(image, errorMethod, minBlockSize, targetCompression, originalSize);
+    }
+
     QuadTree quadtree;
     quadtree.buildfrImage(image, errorMethod, threshold, minBlockSize);
     
@@ -154,7 +186,7 @@ int main() {
     auto endTime = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(endTime - startTime).count();
     
-    // [CHECK]
+    // [CHECK] 
     size_t compressedSize = getFileSize(outputFile);
     double compressionPercentage = (1.0 - static_cast<double>(compressedSize) / originalSize) * 100.0;
     
