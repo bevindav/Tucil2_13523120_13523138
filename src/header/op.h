@@ -18,7 +18,8 @@ double hitungMaxDifference(const std::vector<Color>& pixels);
 // Entropy
 double hitungEntropy(const std::vector<Color>& pixels);
 
-double hitungSSIM(const std::vector<Color>& originalPixels, const std::vector<Color>& compressedPixels);
+// SSIM
+double hitungSSIM(const std::vector<Color>& pixels, const Color& avgColor);
 
 // konversi format
 std::string getFileExtension(const std::string& filename);
