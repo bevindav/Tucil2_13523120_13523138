@@ -17,14 +17,6 @@
 #define CYAN    "\033[36m"
 #define BOLD    "\033[1m"
 
-size_t getFileSize(const std::string& filepath) {
-    std::ifstream file(filepath, std::ios::binary | std::ios::ate);
-    if (!file.is_open()) {
-        return 0;
-    }
-    return file.tellg();
-}
-
 bool validateInputFile(const std::string& path) {
     std::ifstream file(path);
     if (!file.is_open()) {

@@ -50,4 +50,7 @@ void createQuadtreeGIF(
     int minBlockSize
 );
 
+
+size_t getFileSize(const std::string& filepath);
+
 #endif

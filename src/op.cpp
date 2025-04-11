@@ -158,6 +158,14 @@ double hitungSSIM(const std::vector<Color>& pixels, const Color& avgColor) {
     return (ssimR + ssimG + ssimB) / 3.0;
 }
 
+size_t getFileSize(const std::string& filepath) {
+    std::ifstream file(filepath, std::ios::binary | std::ios::ate);
+    if (!file.is_open()) {
+        return 0;
+    }
+    return file.tellg();
+}
+
 std::string getFileExtension(const std::string& filename) {
     size_t dotPos = filename.find_last_of('.');
     if (dotPos == std::string::npos || dotPos == filename.length() - 1) {
@@ -309,7 +317,11 @@ double estimateThresholdForTargetCompression(
         qt.buildfrImage(image, errorMethod, mid, minBlockSize);
         std::vector<std::vector<Color>> reconstructed = qt.reconstructImage(image[0].size(), image.size());
 
-        int compressedSize = qt.hitungCompressedSize();
+        std::string tempOut = "temp.jpg";
+        writeImage(tempOut, reconstructed);
+        int compressedSize = getFileSize(tempOut);
+        std::remove(tempOut.c_str());
+
         double compressionRatio = 1.0 - static_cast<double>(compressedSize) / originalSize;
 
         // std::cout << "Threshold: " << mid << std::endl;
