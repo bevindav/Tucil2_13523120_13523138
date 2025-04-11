@@ -293,17 +293,16 @@ double estimateThresholdForTargetCompression(
     double targetCompression,
     int originalSize
 ) {
-    // std::cout << "Mencari threshold..." << std::endl;
     double low = 0.0;
     double high = (errorMethod == 1) ? 128 * 128 : 1.0; // max threshold tergantung metode
     if (errorMethod == 2 || errorMethod == 3) high = 255;
     if (errorMethod == 4) high = 8.0;
 
     double tolerance = 0.01; // 1% toleransi
-    double bestThreshold = low;
+    double bestThreshold = (errorMethod == 5) ? high / 2 : low;
 
     for (int i = 0; i < 20; i++) {
-        std::cout << "Mencari threshold..." << std::endl;
+        // std::cout << "Mencari threshold... " << (i+1) << std::endl;
         double mid = (low + high) / 2.0;
 
         QuadTree qt;
@@ -313,18 +312,28 @@ double estimateThresholdForTargetCompression(
         int compressedSize = qt.hitungCompressedSize();
         double compressionRatio = 1.0 - static_cast<double>(compressedSize) / originalSize;
 
+        // std::cout << "Threshold: " << mid << std::endl;
+
         if (std::abs(compressionRatio - targetCompression) <= tolerance) {
             bestThreshold = mid;
             break;
         }
-
-        if (compressionRatio < targetCompression) {
-            high = mid;
+        
+        if (errorMethod==5) {
+            if (compressionRatio < targetCompression) {
+                low = mid;
+            } else {
+                high = mid;
+            }
         } else {
-            low = mid;
+            if (compressionRatio < targetCompression) {
+                high = mid;
+            } else {
+                low = mid;
+            }
         }
-
         bestThreshold = mid;
     }
+    // std::cout << "Final threshold" << bestThreshold << std::endl;
     return bestThreshold;
 }
