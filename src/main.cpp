@@ -58,7 +58,7 @@ int main() {
     // 1. [INPUT] alamat absolut gambar yang akan dikompresi
     do {
         std::cout << YELLOW << "Masukkan alamat absolut gambar yang ingin dikompresi:\n> " << RESET; 
-        std::cin >> inputFile;
+        std::getline(std::cin, inputFile);
         if (!validateInputFile(inputFile)) {
             std::cerr << RED << "Alamat tidak valid atau file tidak ditemukan :(\n" << RESET; 
         }
@@ -140,8 +140,9 @@ int main() {
     }
     
     do {
+        std::cin.ignore();
         std::cout << "Masukkan alamat absolut gambar hasil kompresi: ";
-        std::cin >> outputFile;
+        std::getline(std::cin, outputFile);
     
         if (!validateOutputPath(outputFile)) {
             std::cerr << "Gagal write file :(" << std::endl;
@@ -149,7 +150,6 @@ int main() {
     
     } while (!validateOutputPath(outputFile));
     
-    std::cin.ignore();
     std::cout << "Masukkan alamat absolut GIF: ";
     std::getline(std::cin, gifFile);
     
