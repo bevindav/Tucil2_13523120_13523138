@@ -147,43 +147,6 @@ int QuadTree::hitungCompressedSize() {
     return totalN * sizePerNode;
 }
 
-std::vector<std::vector<Color>> QuadTree::reconstructImageLimitedDepth(int maxDepth) {
-    std::vector<std::vector<Color>> image(realHeight, std::vector<Color>(realWidth));
-    reconstructLimitedHelper(root, image, 0, 0, realWidth, realHeight, 0, maxDepth);
-    return image;
-}
-
-
-void QuadTree::reconstructLimitedHelper(
-    QuadTreeNode* node,
-    std::vector<std::vector<Color>>& image,
-    int x, int y, int width, int height,
-    int currentDepth, int maxDepth
-) {
-    if (!node) return;
-
-    int endX = std::min(x + width, (int)image[0].size());
-    int endY = std::min(y + height, (int)image.size());
-    
-    if (node->isLeafNode() || currentDepth >= maxDepth) {
-        Color avgColor = node->getAvgColor();
-        for (int i = y; i < endY; ++i) {
-            for (int j = x; j < endX; ++j) {
-                image[i][j] = avgColor;
-            }
-        }
-        return;
-    }
-    
-    int halfWidth = width / 2;
-    int halfHeight = height / 2;
-    
-    reconstructLimitedHelper(node->getTopLeft(), image, x, y, halfWidth, halfHeight, currentDepth + 1, maxDepth);
-    reconstructLimitedHelper(node->getTopRight(), image, x + halfWidth, y, halfWidth, halfHeight, currentDepth + 1, maxDepth);
-    reconstructLimitedHelper(node->getBottomLeft(), image, x, y + halfHeight, halfWidth, halfHeight, currentDepth + 1, maxDepth);
-    reconstructLimitedHelper(node->getBottomRight(), image, x + halfWidth, y + halfHeight, halfWidth, halfHeight, currentDepth + 1, maxDepth);
-}
-
 std::vector<std::vector<Color>> QuadTree::reconstructImageForGIF(int depth) {
     std::vector<std::vector<Color>> result(realHeight, std::vector<Color>(realWidth));
     Color bgColor = root->getAvgColor();

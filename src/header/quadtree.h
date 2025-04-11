@@ -60,12 +60,6 @@ private:
     int maxDepth;
     int realWidth;
     int realHeight;
-    void reconstructLimitedHelper(
-        QuadTreeNode* node,
-        std::vector<std::vector<Color>>& image,
-        int x, int y, int width, int height,
-        int currentDepth, int maxDepth
-    );
     
 public:
     // ctor
@@ -73,7 +67,6 @@ public:
     
     // dtor
     ~QuadTree();
-    std::vector<std::vector<Color>> reconstructImageLimitedDepth(int maxDepth);
     std::vector<std::vector<Color>> reconstructImage(int lebar, int panjang);
     
     QuadTreeNode* getRoot() const { return root; }
